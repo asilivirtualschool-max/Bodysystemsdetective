@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Body System Detective Files</title>
+<style>
+  :root{
+    --paper:#ece2c8; --ink:#141210; --cream:#fbf7ea; --cap:#d9d2bd;
+    --red:#c0392b; --blue:#3fa7d6; --teal:#2f6f86; --gold:#c99a3b;
+    --bg:#111; --bg2:#1a2230; --panel:#182231; --line:#2c3a52; --mut:#9fb0c6;
+    --sys-circ:#e8574c; --sys-resp:#4fb0e0; --sys-dig:#5fbf6a; --sys-nerv:#c07be0; --sys-musc:#e8973f;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:#17150f; color:#f3ecd8; font-family:Georgia,"Times New Roman",serif; min-height:100vh}
+  .mono{font-family:"Courier New",monospace}
+
+  #app{min-height:100vh; padding:70px 18px 40px; position:relative;
+    background:#111; background-image:radial-gradient(#ffffff08 1px,transparent 1px); background-size:5px 5px}
+
+  .badge{position:fixed; left:18px; top:14px; z-index:30; display:flex; align-items:center; gap:8px; cursor:pointer}
+  .badge svg{width:34px;height:34px}
+  .badge .lbl{font-family:"Courier New",monospace; font-weight:900; letter-spacing:1px; color:var(--gold); font-size:.78rem}
+
+  .stage{max-width:920px; margin:0 auto}
+  .pagetitle{text-align:center; font-size:1.5rem; font-weight:900; margin:0 0 6px; color:#f6efdb; text-shadow:2px 2px 0 #000}
+  .pagesub{text-align:center; font-family:"Courier New",monospace; color:var(--mut); font-size:.8rem; margin:0 0 22px; letter-spacing:1px}
+
+  .panel{background:var(--cream); color:#1a1408; border:3px solid var(--ink); box-shadow:8px 8px 0 rgba(0,0,0,.5); padding:22px; margin-bottom:18px}
+  .stamp{display:inline-block; border:3px solid var(--red); color:var(--red); font-family:"Courier New",monospace;
+    font-weight:900; letter-spacing:3px; padding:3px 12px; transform:rotate(-4deg); font-size:.78rem}
+
+  .cover{background:linear-gradient(160deg,#241d14,#111); border:3px solid var(--ink); box-shadow:0 30px 80px rgba(0,0,0,.6);
+    padding:50px 34px; text-align:center; position:relative; overflow:hidden}
+  .cover::before{content:""; position:absolute; inset:0; background-image:
+    linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px); background-size:100% 26px; pointer-events:none}
+  .cover .kicker{font-family:"Courier New",monospace; color:var(--gold); letter-spacing:4px; font-size:.82rem}
+  .cover h1{font-size:2.3rem; line-height:1.05; margin:14px 0 4px; font-style:italic; font-weight:900; color:#fff; text-shadow:3px 3px 0 var(--red)}
+  .cover h2{font-size:1.2rem; color:var(--gold); font-weight:900; font-style:italic; margin:0 0 22px}
+  .cover .lantern{width:120px;height:120px;margin:8px auto 20px}
+  .cover p.flavor{max-width:540px; margin:0 auto 26px; color:#d9cfae; font-size:1rem; line-height:1.55}
+
+  .btn{cursor:pointer; border:3px solid var(--ink); background:var(--gold); color:#151109; padding:13px 26px;
+    font-weight:900; font-size:.98rem; font-family:"Courier New",monospace; letter-spacing:1px; box-shadow:5px 5px 0 rgba(0,0,0,.5);
+    display:inline-flex; align-items:center; gap:10px; transition:.12s}
+  .btn:hover{transform:translate(-2px,-2px); box-shadow:7px 7px 0 rgba(0,0,0,.5)}
+  .btn:active{transform:translate(1px,1px); box-shadow:3px 3px 0 rgba(0,0,0,.5)}
+  .btn.ghost{background:var(--panel); color:#eef3fb; border-color:var(--line)}
+  .btn.small{padding:9px 16px; font-size:.82rem; box-shadow:4px 4px 0 rgba(0,0,0,.5)}
+  .btnrow{display:flex; gap:12px; flex-wrap:wrap; justify-content:center; margin-top:18px}
+
+  /* case select shelf */
+  .shelf{display:grid; grid-template-columns:repeat(3,1fr); gap:16px}
+  @media(max-width:760px){.shelf{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:520px){.shelf{grid-template-columns:1fr}}
+  .folder{cursor:pointer; background:#f2e6c2; border:3px solid var(--ink); box-shadow:6px 6px 0 rgba(0,0,0,.5); padding:16px; position:relative; transition:.12s}
+  .folder:hover{transform:translateY(-3px); box-shadow:8px 8px 0 rgba(0,0,0,.5)}
+  .folder .fnum{font-family:"Courier New",monospace; font-weight:900; color:var(--red); font-size:.74rem}
+  .folder .ficon{width:44px;height:44px;margin:8px 0 6px}
+  .folder h4{margin:0 0 6px; font-size:1.02rem; color:#241c12; line-height:1.2}
+  .folder p{margin:0; font-size:.82rem; color:#4a3d24; line-height:1.4}
+  .folder .solvedtag{position:absolute; top:10px; right:10px; font-family:"Courier New",monospace; font-size:.68rem; color:#2f6f2f; font-weight:900; opacity:0}
+  .folder.solved .solvedtag{opacity:1}
+  .folder.solved{border-color:#2f6f2f}
+
+  .filehead{display:flex; align-items:center; justify-content:space-between; border-bottom:2px dashed var(--ink); padding-bottom:10px; margin-bottom:14px; flex-wrap:wrap; gap:8px}
+  .filehead .num{font-family:"Courier New",monospace; font-weight:900; color:var(--red)}
+  .witness{font-family:"Courier New",monospace; background:#fdfaf0; border:2px solid var(--ink); padding:12px 14px; margin:14px 0; box-shadow:4px 4px 0 rgba(0,0,0,.3); line-height:1.5}
+  .witness b{color:#7a1f14}
+  .symptoms{display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin:16px 0}
+  @media(max-width:560px){.symptoms{grid-template-columns:1fr}}
+  .sym{border:2px solid var(--ink); background:#fff8e6; padding:9px 12px; font-weight:bold; display:flex; gap:8px; align-items:center; font-size:.92rem}
+  .sym svg{width:20px;height:20px;flex:0 0 auto}
+  .clue{background:#f2e6c2; border:2px dashed var(--red); padding:12px 14px; margin-top:14px; font-style:italic}
+
+  .lineup{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:6px}
+  .lineup.n3{grid-template-columns:repeat(3,1fr)}
+  @media(max-width:760px){.lineup, .lineup.n3{grid-template-columns:repeat(2,1fr)}}
+  .suspect{cursor:pointer; border:3px solid var(--ink); background:#0f1622; box-shadow:5px 5px 0 rgba(0,0,0,.5); padding:14px 10px 12px; text-align:center; transition:.12s; position:relative}
+  .suspect:hover{transform:translateY(-3px); box-shadow:7px 7px 0 rgba(0,0,0,.5)}
+  .suspect svg{width:60px;height:60px; margin-bottom:6px}
+  .suspect .name{font-weight:900; color:#f3ecd8; font-size:.92rem}
+  .suspect .role{font-family:"Courier New",monospace; color:var(--mut); font-size:.7rem; margin-top:2px}
+  .suspect .checked{position:absolute; top:6px; right:8px; color:var(--gold); font-size:.85rem; opacity:0}
+  .suspect.done .checked{opacity:1}
+  .suspect.done{border-color:var(--gold)}
+
+  .interrog{display:grid; grid-template-columns:.85fr 1.15fr; gap:20px; align-items:start}
+  @media(max-width:760px){.interrog{grid-template-columns:1fr}}
+  .mugshot{background:#0f1622; border:2px solid var(--ink); padding:16px; text-align:center}
+  .mugshot svg{width:100%; max-width:170px; height:auto}
+  .mugshot .tag{font-family:"Courier New",monospace; color:var(--gold); font-size:.7rem; margin-top:8px}
+  .speech{background:var(--cream); border:2px solid var(--ink); box-shadow:5px 5px 0 rgba(0,0,0,.35); padding:14px 16px; color:#1a1408}
+  .speech h3{margin:0 0 8px; font-size:1.1rem; color:#241c12}
+  .speech .line{margin:0 0 10px; line-height:1.5}
+  .speech .alibi{font-weight:bold; color:var(--teal)}
+  .speech .evid{font-weight:bold; color:var(--red)}
+
+  .board{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:10px 0 6px}
+  .board.n3{grid-template-columns:repeat(3,1fr)}
+  @media(max-width:760px){.board,.board.n3{grid-template-columns:repeat(2,1fr)}}
+  .accuse{cursor:pointer; border:3px solid var(--line); background:var(--panel); color:#eef3fb; padding:14px 8px; text-align:center; font-weight:900; font-size:.92rem}
+  .accuse:hover{border-color:var(--gold)}
+  .accuse.right{border-color:var(--sys-dig); background:rgba(95,191,106,.16)}
+  .accuse.wrong{border-color:var(--sys-circ); background:rgba(232,87,76,.14)}
+  .verdict{margin-top:16px; padding:14px 16px; border-left:4px solid var(--gold); background:var(--bg2); border-radius:0 8px 8px 0; display:none}
+  .verdict.show{display:block}
+  .verdict b{color:var(--gold)}
+
+  .notebook{max-width:820px; margin:0 auto; border:3px solid var(--ink); background:var(--panel); box-shadow:8px 8px 0 rgba(0,0,0,.5)}
+  .nb-head{padding:14px 18px; border-bottom:2px solid var(--ink); background:linear-gradient(90deg,var(--bg2),transparent)}
+  .nb-head h3{margin:0; font-size:1.08rem}
+  .nb-head p{margin:2px 0 0; color:var(--mut); font-size:.8rem}
+  .nb-body{padding:14px 18px 20px}
+  .nb-body label{display:block; font-weight:bold; margin:14px 0 6px; color:#f0e6c8}
+  .nb-body textarea{width:100%; min-height:70px; resize:vertical; background:#0e1420; color:#eef3fb; border:1px solid var(--line); border-radius:8px; padding:11px 13px; font-family:Georgia,serif; font-size:.95rem; line-height:1.5}
+  .nb-body textarea:focus{outline:none; border-color:var(--gold)}
+
+  .nav{position:fixed; bottom:0; left:0; right:0; display:flex; align-items:center; justify-content:center; gap:26px; padding:14px; background:linear-gradient(rgba(0,0,0,0),rgba(0,0,0,.78)); z-index:30}
+  .navbtn{width:52px; height:52px; border-radius:50%; background:var(--blue); border:3px solid #fff; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 5px 14px rgba(0,0,0,.6); transition:.15s}
+  .navbtn:hover{background:#2b8fbf; transform:translateY(-2px)}
+  .navbtn.off{opacity:.28; pointer-events:none}
+  .navbtn svg{width:28px; height:20px; fill:#fff}
+  .counter{font-family:"Courier New",monospace; font-size:.9rem; letter-spacing:1px; min-width:150px; text-align:center; color:#f3ecd8}
+
+  @media print{ .nav,.badge{display:none!important} body{background:#fff!important} .panel,.speech,.mugshot,.notebook,.folder{border-color:#999!important} *{color:#111!important} }
+</style>
+</head>
+<body>
+<div class="badge" onclick="gotoSelect()"><svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+  <polygon points="20,3 24,15 37,15 26,23 30,36 20,28 10,36 14,23 3,15 16,15" fill="#c99a3b" stroke="#141210" stroke-width="1.4"/>
+  <text x="20" y="24" text-anchor="middle" font-family="Courier New" font-size="8" font-weight="900" fill="#141210">BSD</text>
+</svg><span class="lbl">CASE FILES</span></div>
+<div id="app"></div>
+
+<script>
+/* ===================== ICONS ===================== */
+const ICO = {
+heart:`<svg viewBox="0 0 64 64"><path d="M32 54S8 40 8 24a12 12 0 0 1 22-6 12 12 0 0 1 22 6c0 16-24 30-24 30z" fill="#e8574c" stroke="#141210" stroke-width="2.2"/></svg>`,
+lungs:`<svg viewBox="0 0 64 64"><path d="M32 8v16" stroke="#141210" stroke-width="2.4" fill="none"/>
+<path d="M32 24c-4-6-16-8-20 0-4 8 0 24 8 24 6 0 10-8 12-14" fill="#4fb0e0" stroke="#141210" stroke-width="2.2"/>
+<path d="M32 24c4-6 16-8 20 0 4 8 0 24-8 24-6 0-10-8-12-14" fill="#4fb0e0" stroke="#141210" stroke-width="2.2"/></svg>`,
+brain:`<svg viewBox="0 0 64 64"><path d="M22 12c-8 0-14 6-14 13 0 3 1 5 3 7-2 2-3 5-3 8 0 7 6 12 13 12h1c1 4 4 6 8 6h2c4 0 7-3 8-6h1c7 0 13-5 13-12 0-3-1-6-3-8 2-2 3-4 3-7 0-7-6-13-14-13-3 0-6 1-8 3-2-2-5-3-8-3-2 0-4 1-6 0z" fill="#c07be0" stroke="#141210" stroke-width="2.2"/></svg>`,
+muscle:`<svg viewBox="0 0 64 64"><path d="M12 40c0-10 4-18 10-22 2 4 2 8 0 12 6-2 12-8 14-16 6 2 10 8 10 16 0 4-2 8-6 10 4 2 8 2 12-2 2 6 0 14-8 18-10 5-22 3-28-4-3-3-4-8-4-12z" fill="#e8973f" stroke="#141210" stroke-width="2.2"/></svg>`,
+stomach:`<svg viewBox="0 0 64 64"><path d="M24 8c0 6-8 8-8 20 0 14 10 24 20 24 12 0 18-10 18-20 0-8-6-12-6-18 0-4 2-6 2-6-6-2-10 2-10 6 0 3 2 5 2 8 0 4-3 6-7 6-5 0-9-4-9-10 0-6 4-8 4-10 0-2-2-4-6-0z" fill="#5fbf6a" stroke="#141210" stroke-width="2.2"/></svg>`,
+kidney:`<svg viewBox="0 0 64 64"><path d="M20 12c-8 3-12 12-12 20 0 12 8 20 16 20 6 0 8-6 8-6s2 6 8 6c8 0 16-8 16-20 0-8-4-17-12-20-6-2-8 4-8 10 0 4 2 6 2 10 0 4-3 6-6 6s-6-2-6-6c0-4 2-6 2-10 0-6-2-12-8-10z" fill="#4fd6c4" stroke="#141210" stroke-width="2.2" transform="scale(-1,1) translate(-64,0)"/></svg>`,
+gland:`<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="10" fill="#e0a5e8" stroke="#141210" stroke-width="2.2"/>
+<circle cx="14" cy="18" r="6" fill="#e0a5e8" stroke="#141210" stroke-width="2"/>
+<circle cx="50" cy="18" r="6" fill="#e0a5e8" stroke="#141210" stroke-width="2"/>
+<circle cx="14" cy="46" r="6" fill="#e0a5e8" stroke="#141210" stroke-width="2"/>
+<circle cx="50" cy="46" r="6" fill="#e0a5e8" stroke="#141210" stroke-width="2"/>
+<path d="M18 20 26 28M46 20 38 28M18 44 26 36M46 44 38 36" stroke="#141210" stroke-width="1.6"/></svg>`,
+magnify:`<svg viewBox="0 0 24 24"><circle cx="10" cy="10" r="6" fill="none" stroke="#c99a3b" stroke-width="2.4"/><line x1="15" y1="15" x2="21" y2="21" stroke="#c99a3b" stroke-width="2.4" stroke-linecap="round"/></svg>`,
+bolt:`<svg viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6z" fill="#c99a3b"/></svg>`,
+folder:`<svg viewBox="0 0 64 64"><path d="M6 16h20l6 8h26v30H6z" fill="#e8d9a8" stroke="#141210" stroke-width="2.2"/></svg>`,
+apple:`<svg viewBox="0 0 64 64"><path d="M32 14c-2-4-6-6-10-4 1 3 4 5 7 5" fill="none" stroke="#5fbf6a" stroke-width="2.4" stroke-linecap="round"/>
+<path d="M32 16c-10 0-18 8-18 20 0 12 8 18 14 18 3 0 4-2 6-2s3 2 6 2c6 0 14-6 14-18 0-9-5-16-12-19-3-1-6-1-10-1z" fill="#e8574c" stroke="#141210" stroke-width="2.2"/></svg>`,
+poly:`<svg viewBox="0 0 64 64"><rect x="8" y="20" width="48" height="28" rx="4" fill="#182231" stroke="#141210" stroke-width="2.2"/>
+<polyline points="12,34 20,34 24,24 28,44 32,30 36,38 40,34 52,34" fill="none" stroke="#4fd6c4" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+handL:`<svg viewBox="0 0 40 30"><path d="M38 15H8m0 0 10-10M8 15l10 10" stroke="currentColor" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+handR:`<svg viewBox="0 0 40 30"><path d="M2 15h30m0 0L22 5m10 10L22 25" stroke="currentColor" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+};
+
+/* ===================== SYSTEMS ===================== */
+const SYS = {
+  musc:{name:'Musculoskeletal System', role:'The Movers', icon:ICO.muscle},
+  resp:{name:'Respiratory System', role:'The Suppliers', icon:ICO.lungs},
+  circ:{name:'Circulatory System', role:'The Delivery Network', icon:ICO.heart},
+  nerv:{name:'Nervous System', role:'The Control Room', icon:ICO.brain},
+  dig:{name:'Digestive System', role:'The Processors', icon:ICO.stomach}
+};
+
+/* ===================== CASES ===================== */
+const CASES = [
+{
+  id:'runner', fnum:'#1500-M', title:'THE CASE OF THE\nCOLLAPSING RUNNER', short:'A racer collapses near the finish line.',
+  witness:"A student says: \u201CI was running a race on a hot day. Near the end, my legs felt heavy. My heart was pounding. I couldn't catch my breath. Then everything went blurry, and I don't remember falling.\u201D",
+  symptoms:[{t:'Fast heartbeat', i:ICO.heart},{t:'Out of breath', i:ICO.lungs},{t:'Weak muscles', i:ICO.muscle},{t:'Feeling confused', i:ICO.brain}],
+  clue:'Which system is really to blame \u2014 musculoskeletal, respiratory, circulatory, or nervous?',
+  suspects:['musc','resp','circ','nerv'], correct:'circ',
+  dialogue:{
+    musc:{alibi:"\u201CI move your body. My muscles pull on your bones so you can run.\u201D",
+      evidence:"\u201CBy the end of the race, my muscles had no fuel or oxygen left. Without oxygen, muscles can't keep working \u2014 that's why the legs stopped.\u201D"},
+    resp:{alibi:"\u201CI bring air into your lungs, so oxygen can move into your blood.\u201D",
+      evidence:"\u201CI was breathing fast and hard. I wasn't failing \u2014 I was trying to get more oxygen in, quickly.\u201D"},
+    circ:{alibi:"\u201CI carry blood all around your body. Blood carries oxygen and food to every part of you.\u201D",
+      evidence:"\u201COn a hot day, blood moves to the skin to cool you down, and you lose water as sweat. That leaves less blood to carry oxygen to the legs and brain \u2014 right when they need it most.\u201D"},
+    nerv:{alibi:"\u201CI am the control centre. I send the messages that tell muscles to move, and I make sense of what your senses tell me.\u201D",
+      evidence:"\u201CMy brain needs a steady flow of oxygen \u2014 more than almost any other part of the body. When oxygen drops even a little, I stop working properly. That's the dizzy, confused feeling.\u201D"}
+  },
+  verdictRight:"<b>Case closed \u2014 well done!</b> The Circulatory System started it all. On a hot run, blood moves to the skin to cool the body, and water is lost as sweat. That leaves less blood to carry oxygen to the legs and brain. That is why the muscles felt weak, the breathing sped up, and the brain felt foggy.",
+  verdictWrongNote:{ musc:"weak muscles were a sign of low oxygen \u2014 not the cause of it", resp:"fast breathing was the lungs trying to help, not the lungs failing", nerv:"the brain gets confused first because it needs oxygen the most" }
+},
+{
+  id:'stomach', fnum:'#0221-D', title:'THE CASE OF THE\nSTOMACH SHUTDOWN', short:'A big lunch that won\u2019t digest before a test.',
+  witness:"A student says: \u201CI ate a big lunch right before my test. Hours later, my tummy still hurts. I feel sick, and I don't want to eat anything.\u201D",
+  symptoms:[{t:'Stomach ache', i:ICO.stomach},{t:'No appetite', i:ICO.stomach},{t:'Feeling sick', i:ICO.stomach},{t:'Low energy', i:ICO.muscle}],
+  clue:"Is this the digestive system's fault alone? Or could the nervous system be involved too?",
+  suspects:['dig','nerv','circ'], correct:'nerv',
+  dialogue:{
+    dig:{alibi:"\u201CI break down food and take in nutrients. Muscles in my walls squeeze food along, and I make juices to digest it.\u201D",
+      evidence:"\u201CMy squeezing almost stopped completely. But I only move when I get a signal to start \u2014 and that signal comes from somewhere else.\u201D"},
+    nerv:{alibi:"\u201CI run the body on autopilot. Before a test, I can also set off a stress alarm.\u201D",
+      evidence:"\u201CThe stress from the test made me sound the alarm. I sent a signal telling the stomach to slow right down, and telling blood to go to the muscles and brain instead.\u201D"},
+    circ:{alibi:"\u201CI move blood around the body, sending more to wherever it's needed most.\u201D",
+      evidence:"\u201CI followed the alarm signal. I sent blood away from the stomach and towards the muscles and brain, ready for action. That's why digestion slowed down.\u201D"}
+  },
+  verdictRight:"<b>Case closed \u2014 well done!</b> The Nervous System set off a stress alarm before the test. That alarm told the Circulatory System to send blood away from the stomach. Without enough blood, the Digestive System couldn't do its job properly. The stomach wasn't broken \u2014 it just wasn't given what it needed.",
+  verdictWrongNote:{ dig:"the stomach only slowed down because it stopped getting enough blood \u2014 it wasn't broken", circ:"blood moved away from the stomach because of a signal, not because the heart or blood vessels failed" }
+},
+{
+  id:'bus', fnum:'#0819-R', title:'THE CASE OF THE\nBREATHLESS BUS RIDE', short:'Gasping for air on a crowded bus.',
+  witness:"A passenger says: \u201CAn elderly woman on my bus suddenly started gasping for air. She said her chest felt tight. Her fingers went numb, and her skin turned cold and sweaty.\u201D",
+  symptoms:[{t:'Fast breathing', i:ICO.lungs},{t:'Feeling dizzy', i:ICO.brain},{t:'Cold, sweaty skin', i:ICO.heart},{t:'Numb fingers', i:ICO.brain}],
+  clue:'Did her respiratory system fail? Or did stress from another system cause it?',
+  suspects:['resp','nerv','circ'], correct:'nerv',
+  dialogue:{
+    resp:{alibi:"\u201CI move air in and out of the lungs, so oxygen can reach the blood.\u201D",
+      evidence:"\u201CI was breathing very fast \u2014 too fast. I was breathing out too much carbon dioxide, and that's actually what caused the dizziness and tingly fingers. But nobody told me to slow down.\u201D"},
+    nerv:{alibi:"\u201CI watch out for danger. When I sense a threat, I set off a full body alarm.\u201D",
+      evidence:"\u201CI mistook the busy bus for danger and set off a full alarm \u2014 faster breathing, a racing heart, blood pulled away from the skin. Every symptom came from that one false alarm.\u201D"},
+    circ:{alibi:"\u201CI move blood around the body. I can send more blood to the muscles, or to the skin, depending what's needed.\u201D",
+      evidence:"\u201CI pulled blood away from her skin. That's why she looked pale and felt cold and clammy. I was just following the alarm signal I was given.\u201D"}
+  },
+  verdictRight:"<b>Case closed \u2014 well done!</b> The Nervous System set off a false alarm and caused a panic response. Every other symptom followed from that: fast breathing caused the tingling and dizziness, and blood being pulled away from the skin caused the cold, clammy feeling.",
+  verdictWrongNote:{ resp:"the lungs were only doing what the alarm system told them to do", circ:"blood moved away from the skin because of the alarm signal, not because the heart failed" }
+},
+{
+  id:'stroke', fnum:'#1147-N', title:'THE CASE OF THE\nSILENT SIGNALS', short:'A man wakes and one whole side won\u2019t move.',
+  witness:"A family member says: \u201CMy dad woke up and his left arm and leg won't move at all. His speech is slurred, and he seems confused. He didn't hurt himself.\u201D",
+  symptoms:[{t:'Numb on one side', i:ICO.brain},{t:'Slurred speech', i:ICO.brain},{t:'Feeling confused', i:ICO.brain},{t:"Can't move arm/leg", i:ICO.muscle}],
+  clue:'Is this the musculoskeletal system\u2019s fault? Or did the nervous system stop sending messages?',
+  suspects:['musc','nerv','circ'], correct:'nerv',
+  dialogue:{
+    musc:{alibi:"\u201CI move when I get a signal telling me to move. I don't decide when to move on my own.\u201D",
+      evidence:"\u201CI checked myself carefully. My muscles on his left side are perfectly healthy \u2014 no injury at all. I just never got the message to move.\u201D"},
+    nerv:{alibi:"\u201CI send movement messages from the brain, down the spinal cord (the thick nerve running down your back), out to every muscle.\u201D",
+      evidence:"\u201CPart of my network \u2014 the part in charge of his left side and speech \u2014 stopped working. Those brain cells ran out of oxygen, so they stopped sending signals.\u201D"},
+    circ:{alibi:"\u201CI carry oxygen-rich blood to every part of the body, including deep inside the brain.\u201D",
+      evidence:"\u201CA clot (a lump that blocks the flow) blocked one of the blood vessels feeding part of his brain. Without oxygen, that part of the brain could no longer send signals.\u201D"}
+  },
+  verdictRight:"<b>Case closed \u2014 well done!</b> This is called a stroke, and the Nervous System is at fault \u2014 but look closer. A blocked blood vessel (the Circulatory System) cut off oxygen to part of the brain. That's why that part stopped sending signals. The muscles were healthy all along; they simply never got the message.",
+  verdictWrongNote:{ musc:"the muscles were healthy \u2014 they just never received a signal to move", circ:"the blocked vessel started the problem, but the real breakdown was in sending signals \u2014 that's the nervous system's job" }
+},
+{
+  id:'asthma', fnum:'#0663-A', title:'THE CASE OF THE\nWHEEZING WINGER', short:'A player struggles to breathe mid-match.',
+  witness:"A PE teacher says: \u201COne of my players suddenly started wheezing and coughing during a netball match. She said her chest felt tight, and she could only take short, shallow breaths. She wasn't hurt, and her heart was fine just before this happened.\u201D",
+  symptoms:[{t:'Wheezing', i:ICO.lungs},{t:'Tight chest', i:ICO.lungs},{t:'Short breaths', i:ICO.lungs},{t:'Coughing', i:ICO.lungs}],
+  clue:'Is this really about the lungs and airways? Or could the heart or nerves be behind it?',
+  suspects:['resp','circ','nerv'], correct:'resp',
+  dialogue:{
+    resp:{alibi:"\u201CI move air in and out of your lungs, through tiny tubes called airways.\u201D",
+      evidence:"\u201CMy airways got tight and narrow, almost like a straw being squeezed. Less air could get through, so breathing became short and wheezy. This time, that really was down to me.\u201D"},
+    circ:{alibi:"\u201CI move blood around the body, including to the lungs.\u201D",
+      evidence:"\u201CI checked my rhythm just before this happened \u2014 steady and calm, nothing unusual. I wasn't the one causing trouble here.\u201D"},
+    nerv:{alibi:"\u201CI run the body's alarm system, and I can make breathing feel scary when something's wrong.\u201D",
+      evidence:"\u201CI noticed the tight chest and got worried, but I didn't make the airways narrow. I was just reacting to what the lungs were already doing.\u201D"}
+  },
+  verdictRight:"<b>Case closed \u2014 and this time, the airways really are guilty!</b> This looks like asthma: the tubes carrying air into the lungs became narrow, making it hard to breathe. The heart and nerves were healthy \u2014 they were just reacting to what the lungs were already struggling with.",
+  verdictWrongNote:{ circ:"the heart's rhythm stayed steady \u2014 it wasn't the trigger here", nerv:"the nervous system reacted to the tight chest, but didn't cause the narrow airways" }
+},
+{
+  id:'picnic', fnum:'#0729-D', title:'THE CASE OF THE\nPOISONED PICNIC', short:'An old sandwich causes big trouble.',
+  witness:"A parent says: \u201CMy son ate an old chicken sandwich at a picnic. A few hours later, he had terrible stomach cramps, was sick twice, and kept needing the toilet. Nothing else seems wrong with him.\u201D",
+  symptoms:[{t:'Stomach cramps', i:ICO.stomach},{t:'Being sick', i:ICO.stomach},{t:'Needing the toilet often', i:ICO.stomach},{t:'Feeling weak', i:ICO.muscle}],
+  clue:'Did the digestive system genuinely go wrong here? Or is something else really to blame?',
+  suspects:['dig','circ','musc'], correct:'dig',
+  dialogue:{
+    dig:{alibi:"\u201CI break down food, take in nutrients, and get rid of what your body doesn't need.\u201D",
+      evidence:"\u201CHarmful bacteria from the old chicken got into me. My lining got irritated, so I squeezed extra hard to push the harmful food out fast \u2014 that's the cramps, the sickness, and the toilet trips. This time, it really is on me.\u201D"},
+    circ:{alibi:"\u201CI move blood around the body and keep everything supplied.\u201D",
+      evidence:"\u201CI noticed the body losing lots of water from being sick. I'm working a little harder because of that \u2014 but I didn't start this. The digestive system did.\u201D"},
+    musc:{alibi:"\u201CI need water, salts, and energy to work properly.\u201D",
+      evidence:"\u201CWith so much fluid lost, I don't have everything I need, so I feel weak and tired. But I didn't cause the sickness \u2014 I'm just affected by it.\u201D"}
+  },
+  verdictRight:"<b>Case closed \u2014 and the Digestive System really is guilty this time!</b> Harmful bacteria in the old chicken irritated the gut directly, causing the cramps, sickness, and toilet trips. The weak, tired feeling came afterwards, once the body had lost too much water.",
+  verdictWrongNote:{ circ:"the heart and blood vessels were only reacting to fluid loss, not causing the sickness", musc:"feeling weak was a side effect of losing fluids \u2014 not the root cause" }
+},
+{
+  id:'hamstring', fnum:'#0512-M', title:'THE CASE OF THE\nTORN HAMSTRING', short:'A sprinter pulls up mid-race.',
+  witness:"A coach says: \u201COne of my sprinters pulled up suddenly during a race. She felt a sharp pain in the back of her leg and couldn't run another step. There was swelling, but she didn't trip or fall.\u201D",
+  symptoms:[{t:'Sharp leg pain', i:ICO.muscle},{t:'Swelling', i:ICO.muscle},{t:"Can't run", i:ICO.muscle},{t:'Bruising', i:ICO.heart}],
+  clue:'Is this a musculoskeletal injury? Or could the nervous system or circulatory system be to blame?',
+  suspects:['musc','nerv','circ'], correct:'musc',
+  dialogue:{
+    musc:{alibi:"\u201CI contract to help you move. If I'm stretched too far or too fast, I can tear.\u201D",
+      evidence:"\u201CSome of my fibres tore during that fast sprint. That tear is what caused the sharp pain, the swelling, and why she couldn't keep running. This time, it really is me.\u201D"},
+    nerv:{alibi:"\u201CI send the signal that tells a muscle when to contract.\u201D",
+      evidence:"\u201CI sent a completely normal signal to run, just like always. The muscle simply couldn't cope with the force and tore. I didn't cause the injury.\u201D"},
+    circ:{alibi:"\u201CI carry blood to injured areas to help them heal.\u201D",
+      evidence:"\u201CI sent extra blood to the torn area straight away \u2014 that's the swelling and bruising you can see. I'm helping to fix the problem, not causing it.\u201D"}
+  },
+  verdictRight:"<b>Case closed \u2014 the Musculoskeletal System really is guilty this time!</b> Fast, forceful movement tore some of the muscle fibres at the back of her leg. The swelling and bruising are just the circulatory system rushing extra blood in to help it heal.",
+  verdictWrongNote:{ nerv:"the nervous system sent a completely normal signal \u2014 the muscle simply couldn't cope with the force", circ:"extra blood flow was the body trying to heal the injury, not the cause of it" }
+},
+{
+  id:'pump', fnum:'#0044-C', title:'THE CASE OF THE\nBROKEN PUMP', short:'Chest pain and blue lips in the ER.',
+  witness:"An ER nurse says: \u201CA patient came in with sharp chest pain and blue lips. His heartbeat is irregular. He feels exhausted, dizzy, and his hands and feet are ice cold.\u201D",
+  symptoms:[{t:'Chest pain', i:ICO.heart},{t:'Feeling tired', i:ICO.muscle},{t:'Feeling dizzy', i:ICO.brain},{t:'Cold hands and feet', i:ICO.heart}],
+  clue:'Was the circulatory system at fault? Or is it really the respiratory or nervous system to blame?',
+  suspects:['circ','resp','nerv'], correct:'circ',
+  dialogue:{
+    circ:{alibi:"\u201CI am the pump and the pipes. My heart beats in a steady rhythm to push blood, carrying oxygen, around the body.\u201D",
+      evidence:"\u201CI'll admit it \u2014 my rhythm is off. My heart muscle isn't squeezing properly, so blood isn't reaching the body fast enough. That's the chest pain, the cold hands and feet, and the tiredness \u2014 all from me.\u201D"},
+    resp:{alibi:"\u201CI put oxygen into the blood as it passes through the lungs.\u201D",
+      evidence:"\u201CI'm putting oxygen into the blood just fine. The problem is further along \u2014 that oxygen-rich blood isn't being pumped out fast enough to matter.\u201D"},
+    nerv:{alibi:"\u201CI sense pain, and I help control heart rate through automatic signals.\u201D",
+      evidence:"\u201CI'm honestly reporting the chest pain and the dizziness \u2014 both are real signals I received, not signals I caused.\u201D"}
+  },
+  verdictRight:"<b>Case closed \u2014 and this time, the obvious suspect really is guilty!</b> The Circulatory System is at fault. An irregular heartbeat means the heart isn't pumping oxygen-rich blood properly. That explains the chest pain, blue lips, cold hands and feet, and tiredness. Not every mystery has a twist \u2014 sometimes the first suspect really did do it.",
+  verdictWrongNote:{ resp:"the lungs were putting oxygen into the blood correctly \u2014 the problem was pumping that blood onward", nerv:"the nervous system honestly reported the pain and dizziness \u2014 it didn't cause the problem" }
+}
+];
+
+/* ===================== DIAGNOSTIC LAB ===================== */
+/* Original true/false background checks targeting common misconceptions for each system. */
+const DIAG_ORDER = ['circ','resp','dig','musc','nerv'];
+const DIAG_META = {
+  circ:{name:'Circulatory System', icon:ICO.heart},
+  resp:{name:'Respiratory System', icon:ICO.lungs},
+  dig:{name:'Digestive System', icon:ICO.stomach},
+  musc:{name:'Musculoskeletal System', icon:ICO.muscle},
+  nerv:{name:'Nervous System', icon:ICO.brain}
+};
+const DIAG = {
+  circ:[
+    {s:'The heart pumps blood around the body in one big loop.', a:false, exp:'Not quite! Blood really goes round in two loops: heart \u2192 lungs \u2192 heart, then heart \u2192 body \u2192 heart.'},
+    {s:'The heart has four separate parts inside it, called chambers.', a:true, exp:'Yes! The heart has four chambers. They help keep blood with oxygen separate from blood without it.'},
+    {s:'The heart cleans waste out of the blood.', a:false, exp:'No \u2014 that\u2019s the kidneys\u2019 job. The heart is a pump. It moves blood, but it doesn\u2019t clean it.'},
+    {s:'Blood carries both oxygen and digested food to the body\u2019s cells.', a:true, exp:'Yes! Blood carries oxygen from the lungs and nutrients from the gut to every part of the body.'}
+  ],
+  resp:[
+    {s:'Breathing and gas exchange are exactly the same thing.', a:false, exp:'Not quite. Breathing moves air in and out of your lungs. Gas exchange is when oxygen and carbon dioxide actually swap places, inside tiny air sacs called alveoli.'},
+    {s:'Breathing gets faster during exercise mainly because your muscles need more oxygen.', a:false, exp:'This is a common idea, but it\u2019s not quite right. Breathing speeds up mainly because carbon dioxide builds up, and your brain senses this. Getting more oxygen to your muscles happens because of the faster breathing \u2014 it isn\u2019t the main trigger for it.'},
+    {s:'Your lungs store oxygen until your body needs it.', a:false, exp:'No \u2014 your lungs don\u2019t store oxygen. It moves into your blood straight away and gets carried off around the body.'},
+    {s:'The air you breathe out still has some oxygen left in it.', a:true, exp:'Yes! You don\u2019t use up all the oxygen you breathe in \u2014 the air you breathe out still has some left.'}
+  ],
+  dig:[
+    {s:'Most of your food is absorbed into the blood inside the stomach.', a:false, exp:'Not quite. The stomach mostly breaks food up. Most absorption happens later, in the small intestine.'},
+    {s:'The stomach\u2019s main job is to break food down, not to absorb it.', a:true, exp:'Yes! The stomach uses acid and squeezing to break food apart, ready for the next step.'},
+    {s:'Digestion turns food straight into energy.', a:false, exp:'No \u2014 digestion just breaks food into small pieces that can enter the blood. Getting energy from those pieces happens later, inside your cells.'},
+    {s:'Digestion can start in your mouth, before food even reaches your stomach.', a:true, exp:'Yes! Chewing breaks food apart, and your saliva starts breaking down some foods straight away.'}
+  ],
+  musc:[
+    {s:'One muscle can bend and then straighten a joint all by itself.', a:false, exp:'Not quite. Muscles can only pull, not push. So joints need pairs of muscles \u2014 one to bend it, another to straighten it back out.'},
+    {s:'Bones are dead material, with nothing living inside them.', a:false, exp:'No \u2014 bones are alive! They have their own blood supply and living cells, so they can grow and repair.'},
+    {s:'Muscles can only pull. They can never push.', a:true, exp:'Yes! Muscles shorten (contract) to pull. That pulling is the only kind of force a muscle can make.'},
+    {s:'Exercising regularly can make your muscles bigger and stronger over time.', a:true, exp:'Yes! Using your muscles again and again makes the fibres inside them adapt and grow stronger.'}
+  ],
+  nerv:[
+    {s:'The nervous system only controls things you think about on purpose.', a:false, exp:'No \u2014 it also runs lots of automatic jobs, like breathing and digestion, without you ever thinking about them.'},
+    {s:'A reflex goes through your brain before you react.', a:false, exp:'Not quite. Many reflexes skip the brain and go straight through the spinal cord (the thick nerve running down your back) instead, which makes them super fast.'},
+    {s:'Messages carried by nerves usually travel faster than messages carried in the blood.', a:true, exp:'Yes! Nerve messages are electrical and very fast. Messages carried in the blood are much slower.'},
+    {s:'The brain needs a steady supply of oxygen to work properly.', a:true, exp:'Yes! Brain cells are very sensitive to low oxygen, which is why confusion or dizziness can happen quickly if blood flow drops.'}
+  ]
+};
+
+/* ===================== STATE ===================== */
+let state = { view:'cover', caseId:null, interrogated:{}, accused:{}, activeSuspect:null,
+  diagSystem:null, diagFrom:null, diagAnswers:{} };
+const CASE_FLOW = ['file','lineup','interrog','accuse','notebook'];
+
+function getCase(){ return CASES.find(c=>c.id===state.caseId); }
+function gotoCover(){ state.view='cover'; render(); scrollTop(); }
+function gotoSelect(){ state.view='select'; state.caseId=null; render(); scrollTop(); }
+function openCase(id){ state.caseId=id; state.view='file'; if(!state.interrogated[id]) state.interrogated[id]={}; if(!state.accused[id]) state.accused[id]=null; render(); scrollTop(); }
+function setView(v){ state.view=v; render(); scrollTop(); }
+function scrollTop(){ window.scrollTo(0,0); }
+
+function flip(d){
+  if(state.view==='cover'){ if(d>0) gotoSelect(); return; }
+  if(state.view==='select'){ if(d<0) gotoCover(); return; }
+  if(state.view==='difflab'){ if(d<0) gotoSelect(); return; }
+  if(state.view==='diagnostic'){ if(d<0) diagBack(); return; }
+  let i = CASE_FLOW.indexOf(state.view);
+  let n = i + d;
+  if(n<0){ gotoSelect(); return; }
+  if(n>CASE_FLOW.length-1){ n = CASE_FLOW.length-1; }
+  if(CASE_FLOW[n]==='interrog' && !state.activeSuspect) state.activeSuspect = getCase().suspects[0];
+  state.view = CASE_FLOW[n];
+  render(); scrollTop();
+}
+function openSuspect(id){ const c=getCase(); state.interrogated[c.id][id]=true; state.activeSuspect=id; state.view='interrog'; render(); scrollTop(); }
+function accuse(id){
+  const c = getCase();
+  state.accused[c.id] = id;
+  document.querySelectorAll('.accuse').forEach(b=>{
+    b.classList.remove('right','wrong');
+    if(b.dataset.id===id) b.classList.add(id===c.correct?'right':'wrong');
+  });
+  const v = document.getElementById('verdict');
+  v.classList.add('show');
+  v.innerHTML = id===c.correct ? c.verdictRight :
+    `<b>Not quite \u2014 but good detective work.</b> The ${SYS[id].name} definitely showed symptoms, because ${c.verdictWrongNote[id]}. Look again at the clue: ${c.clue}`;
+}
+
+function openDiagLab(){ state.view='difflab'; render(); scrollTop(); }
+function openDiagnostic(id, from){ state.diagSystem=id; state.diagFrom=from||'lab'; state.view='diagnostic'; render(); scrollTop(); }
+function diagAnswer(sysId, idx, val){
+  if(!state.diagAnswers[sysId]) state.diagAnswers[sysId]={};
+  state.diagAnswers[sysId][idx]=val;
+  render();
+}
+function diagBack(){
+  if(state.diagFrom==='interrog'){ state.view='interrog'; }
+  else { state.view='difflab'; }
+  render(); scrollTop();
+}
+
+/* ===================== RENDER ===================== */
+const app = document.getElementById('app');
+function render(){
+  let html = '';
+  if(state.view==='cover') html = coverHTML();
+  else if(state.view==='select') html = selectHTML();
+  else if(state.view==='file') html = fileHTML();
+  else if(state.view==='lineup') html = lineupHTML();
+  else if(state.view==='interrog') html = interrogHTML();
+  else if(state.view==='accuse') html = accuseHTML();
+  else if(state.view==='notebook') html = notebookHTML();
+  else if(state.view==='difflab') html = diffLabHTML();
+  else if(state.view==='diagnostic') html = diagnosticHTML();
+
+  let counter = 'DETECTIVE FILES';
+  let atStart = state.view==='cover';
+  let atEnd = false;
+  if(state.view==='select'){ counter='CHOOSE A CASE'; }
+  if(state.view==='difflab'){ counter='DIAGNOSTIC LAB'; atEnd=true; }
+  if(state.view==='diagnostic'){ counter='BACKGROUND CHECK'; atEnd=true; }
+  if(CASE_FLOW.includes(state.view)){
+    const i = CASE_FLOW.indexOf(state.view);
+    counter = `CASE PAGE ${i+1} OF ${CASE_FLOW.length}`;
+    atEnd = i===CASE_FLOW.length-1;
+  }
+
+  app.innerHTML = `<div class="stage">${html}</div><div class="nav">
+    <div class="navbtn ${atStart?'off':''}" onclick="flip(-1)">${ICO.handL}</div>
+    <div class="counter">${counter}</div>
+    <div class="navbtn ${atEnd?'off':''}" onclick="flip(1)">${ICO.handR}</div>
+  </div>`;
+}
+
+function coverHTML(){
+  return `<div class="cover">
+    <div class="kicker">BODY SYSTEM BUREAU OF INVESTIGATION</div>
+    <h1>THE DETECTIVE<br/>CASE FILES</h1>
+    <h2>eight body-system whodunits</h2>
+    <div class="lantern">${ICO.magnify}</div>
+    <p class="flavor">Eight mysteries. Eight patients in trouble. In some cases, more than one body system looks guilty, but only one really caused it \u2014 the rest just got caught up in the chain reaction. In other cases, the obvious suspect really did do it. Open a case file. Question the suspects. Make your decision.</p>
+    <div class="btnrow"><div class="btn" onclick="gotoSelect()">${ICO.bolt} OPEN THE ARCHIVE</div></div>
+  </div>`;
+}
+
+function selectHTML(){
+  return `<h2 class="pagetitle">CASE ARCHIVE</h2>
+  <p class="pagesub">EIGHT FILES ON RECORD &mdash; CHOOSE ONE TO INVESTIGATE</p>
+  <div class="panel" style="margin-bottom:22px; text-align:center; background:#f2e6c2">
+    <div class="stamp" style="margin-bottom:10px">NEW UNIT</div>
+    <h4 style="margin:0 0 6px; font-size:1.1rem">\u{1F52C} Diagnostic Lab</h4>
+    <p style="margin:0 0 14px; font-size:.9rem; color:#4a3d24">Before you believe a suspect, run a background check! Answer true or false questions about each system. Can you spot the tricky ideas that are actually wrong?</p>
+    <div class="btnrow"><div class="btn" onclick="openDiagLab()">${ICO.poly} ENTER THE LAB</div></div>
+  </div>
+  <div class="shelf">
+    ${CASES.map((c,i)=>{
+      const solved = state.accused[c.id]===c.correct;
+      return `<div class="folder ${solved?'solved':''}" onclick="openCase('${c.id}')">
+        <span class="solvedtag">\u2713 SOLVED</span>
+        <div class="fnum">FILE ${c.fnum}</div>
+        <div class="ficon">${ICO.folder}</div>
+        <h4>${c.title.split('\n')[1] ? c.title.split('\n').join(' ') : c.title}</h4>
+        <p>${c.short}</p>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function diffLabHTML(){
+  return `<h2 class="pagetitle">DIAGNOSTIC LAB</h2>
+  <p class="pagesub">CHOOSE A SYSTEM &mdash; TRUE OR FALSE</p>
+  <div class="shelf">
+    ${DIAG_ORDER.map(id=>{
+      const meta = DIAG_META[id];
+      const answered = state.diagAnswers[id] ? Object.keys(state.diagAnswers[id]).length : 0;
+      const total = DIAG[id].length;
+      const done = answered>=total;
+      return `<div class="folder ${done?'solved':''}" onclick="openDiagnostic('${id}','lab')">
+        <span class="solvedtag">\u2713 CHECKED</span>
+        <div class="fnum">BACKGROUND CHECK</div>
+        <div class="ficon">${meta.icon}</div>
+        <h4>${meta.name}</h4>
+        <p>${total} statements &mdash; true or false?</p>
+      </div>`;
+    }).join('')}
+  </div>
+  <div class="btnrow"><div class="btn ghost" onclick="gotoSelect()">back to case archive</div></div>`;
+}
+
+function diagnosticHTML(){
+  const id = state.diagSystem;
+  const meta = DIAG_META[id];
+  const items = DIAG[id];
+  const answers = state.diagAnswers[id] || {};
+  return `<h2 class="pagetitle">BACKGROUND CHECK</h2>
+  <p class="pagesub">${meta.name.toUpperCase()} &mdash; TRUE OR FALSE</p>
+  <div class="panel">
+    <div class="filehead"><span class="stamp">POLYGRAPH</span><span class="num">${meta.icon.replace('<svg','<svg style="width:22px;height:22px;vertical-align:middle"')} ${meta.name}</span></div>
+    ${items.map((it,idx)=>{
+      const chosen = answers[idx];
+      const answered = chosen!==undefined;
+      const correct = answered && chosen===it.a;
+      return `<div class="witness" style="margin-bottom:14px">
+        <div style="font-weight:bold; margin-bottom:10px">${idx+1}. ${it.s}</div>
+        <div class="btnrow" style="justify-content:flex-start; margin-top:0">
+          <div class="btn small ${answered && chosen===true ? '' : 'ghost'}" style="${answered && chosen===true ? (it.a===true?'background:#bfe6bf':'background:#f0b8b0') : ''}" onclick="diagAnswer('${id}',${idx},true)">TRUE</div>
+          <div class="btn small ${answered && chosen===false ? '' : 'ghost'}" style="${answered && chosen===false ? (it.a===false?'background:#bfe6bf':'background:#f0b8b0') : ''}" onclick="diagAnswer('${id}',${idx},false)">FALSE</div>
+        </div>
+        ${answered ? `<div class="clue" style="margin-top:10px"><b>${correct?'Correct.':'Not quite.'}</b> ${it.exp}</div>` : ''}
+      </div>`;
+    }).join('')}
+    <div class="btnrow"><div class="btn ghost" onclick="diagBack()">${state.diagFrom==='interrog' ? 'back to interrogation' : 'back to the lab'}</div></div>
+  </div>`;
+}
+
+function fileHTML(){
+  const c = getCase();
+  return `<h2 class="pagetitle">CASE FILE ${c.fnum}</h2>
+  <p class="pagesub">READ CAREFULLY BEFORE QUESTIONING SUSPECTS</p>
+  <div class="panel">
+    <div class="filehead"><span class="stamp">CONFIDENTIAL</span><span class="num">${c.title.replace('\n',' ')}</span></div>
+    <div class="witness"><b>Witness statement:</b> ${c.witness}</div>
+    <div style="font-weight:900;margin:14px 0 6px">Reported symptoms:</div>
+    <div class="symptoms">${c.symptoms.map(s=>`<div class="sym">${s.i}${s.t}</div>`).join('')}</div>
+    <div class="clue">Guiding clue: ${c.clue}</div>
+    <div class="btnrow"><div class="btn" onclick="setView('lineup')">${ICO.magnify} MEET THE SUSPECTS</div></div>
+  </div>`;
+}
+
+function lineupHTML(){
+  const c = getCase();
+  const n = c.suspects.length;
+  const gridClass = n===3 ? 'n3' : '';
+  const questioned = Object.keys(state.interrogated[c.id]).length;
+  return `<h2 class="pagetitle">SUSPECT LINEUP</h2>
+  <p class="pagesub">TAP EACH SYSTEM TO INTERROGATE &mdash; QUESTION ALL ${n}</p>
+  <div class="panel">
+    <div class="lineup ${gridClass}">
+      ${c.suspects.map(id=>{ const s=SYS[id]; const done = !!(state.interrogated[c.id][id]);
+        return `<div class="suspect ${done?'done':''}" onclick="openSuspect('${id}')">
+          <span class="checked">\u2713 questioned</span>
+          ${s.icon}
+          <div class="name">${s.name}</div>
+          <div class="role">${s.role}</div>
+        </div>`; }).join('')}
+    </div>
+    <div class="btnrow"><div class="btn ${questioned<n?'ghost':''}" onclick="setView('accuse')">${ICO.bolt} MAKE YOUR ACCUSATION</div></div>
+  </div>`;
+}
+
+function interrogHTML(){
+  const c = getCase();
+  const id = state.activeSuspect || c.suspects[0];
+  const s = SYS[id];
+  const d = c.dialogue[id];
+  const others = c.suspects.filter(x=>x!==id);
+  return `<h2 class="pagetitle">INTERROGATION ROOM</h2>
+  <p class="pagesub">${s.name.toUpperCase()}</p>
+  <div class="panel">
+    <div class="interrog">
+      <div class="mugshot">${s.icon}<div class="tag">SUSPECT: ${s.name}</div></div>
+      <div class="speech">
+        <h3>${s.name}</h3>
+        <p class="line"><span class="alibi">Alibi:</span> ${d.alibi}</p>
+        <p class="line"><span class="evid">Evidence given:</span> ${d.evidence}</p>
+      </div>
+    </div>
+    <div class="btnrow">
+      ${others.map(o=>`<div class="btn small ghost" onclick="openSuspect('${o}')">question ${SYS[o].name}</div>`).join('')}
+    </div>
+    ${DIAG[id] ? `<div class="btnrow"><div class="btn small" onclick="openDiagnostic('${id}','interrog')">${ICO.poly} run background check on ${s.name}</div></div>` : ''}
+    <div class="btnrow"><div class="btn" onclick="setView('lineup')">back to lineup</div></div>
+  </div>`;
+}
+
+function accuseHTML(){
+  const c = getCase();
+  const n = c.suspects.length;
+  const gridClass = n===3 ? 'n3' : '';
+  return `<h2 class="pagetitle">MAKE YOUR ACCUSATION</h2>
+  <p class="pagesub">WHICH SYSTEM IS TRULY RESPONSIBLE?</p>
+  <div class="panel">
+    <div class="board ${gridClass}">
+      ${c.suspects.map(id=>`<div class="accuse" data-id="${id}" onclick="accuse('${id}')">${SYS[id].name}</div>`).join('')}
+    </div>
+    <div class="verdict" id="verdict"></div>
+    <div class="btnrow"><div class="btn" onclick="setView('notebook')">${ICO.bolt} WRITE YOUR CASE REPORT</div></div>
+  </div>`;
+}
+
+function notebookHTML(){
+  const c = getCase();
+  return `<h2 class="pagetitle">DETECTIVE'S NOTEBOOK</h2>
+  <p class="pagesub">CLOSE OUT ${c.title.split('\n')[1] || c.title}</p>
+  <div class="notebook">
+    <div class="nb-head"><h3>Case Report</h3><p>Answers stay on this page only &mdash; nothing is saved when you close it, so screenshot or copy your work if you want to keep it.</p></div>
+    <div class="nb-body">
+      <label>1. Which system did you accuse? Why?</label>
+      <textarea placeholder="I accused the ___ system because..."></textarea>
+      <label>2. How did trouble in one system affect the others? Explain the chain reaction.</label>
+      <textarea placeholder="First the ___ system struggled, which meant..."></textarea>
+      <label>3. What does this case show about how body systems work together?</label>
+      <textarea placeholder="This case shows that the human body..."></textarea>
+    </div>
+  </div>
+  <div class="btnrow"><div class="btn ghost" onclick="gotoSelect()">${ICO.magnify} back to the archive</div></div>`;
+}
+
+render();
+window.addEventListener('keydown', e=>{ if(e.key==='ArrowRight') flip(1); if(e.key==='ArrowLeft') flip(-1); });
+</script>
+</body>
+</html>
